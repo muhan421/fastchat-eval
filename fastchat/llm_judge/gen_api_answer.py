@@ -13,15 +13,34 @@ import openai
 import shortuuid
 import tqdm
 
+import pdb
+
 from fastchat.llm_judge.common import (
     load_questions,
     temperature_config,
     chat_completion_openai,
     chat_completion_anthropic,
     chat_completion_palm,
+    messages_api_anthropic
 )
 from fastchat.llm_judge.gen_model_answer import reorg_answer_file
 from fastchat.model.model_adapter import get_conversation_template, ANTHROPIC_MODEL_LIST
+
+ANTHROPIC_MODEL_LIST = (
+    "claude-1",
+    "claude-2",
+    "claude-2.0",
+    "claude-2.1",
+    "claude-3-haiku-20240307",
+    "claude-3-haiku-20240307-vertex",
+    "claude-3-sonnet-20240229",
+    "claude-3-sonnet-20240229-vertex",
+    "claude-3-5-sonnet-20240620",
+    "claude-3-opus-20240229",
+    "claude-instant-1",
+    "claude-instant-1.2",
+)
+
 
 
 def get_answer(
@@ -39,9 +58,11 @@ def get_answer(
     else:
         temperature = 0.7
 
+
     choices = []
     chat_state = None  # for palm-2 model
     for i in range(num_choices):
+        # pdb.set_trace()
         conv = get_conversation_template(model)
 
         turns = []
@@ -50,7 +71,7 @@ def get_answer(
             conv.append_message(conv.roles[1], None)
 
             if model in ANTHROPIC_MODEL_LIST:
-                output = chat_completion_anthropic(model, conv, temperature, max_tokens)
+                output = messages_api_anthropic(model, conv, temperature, max_tokens)
             elif model == "palm-2-chat-bison-001":
                 chat_state, output = chat_completion_palm(
                     chat_state, model, conv, temperature, max_tokens

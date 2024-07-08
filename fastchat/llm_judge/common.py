@@ -13,6 +13,7 @@ from typing import Optional
 
 import openai
 import anthropic
+import pdb
 
 from fastchat.model.model_adapter import (
     get_conversation_template,
@@ -478,18 +479,57 @@ def chat_completion_anthropic(model, conv, temperature, max_tokens, api_dict=Non
         try:
             c = anthropic.Anthropic(api_key=api_key)
             prompt = conv.get_prompt()
+            #pdb.set_trace()
+
+            ## CHANGE THIS --------------
             response = c.completions.create(
                 model=model,
-                prompt=prompt,
+                prompt=f"\n\nHuman: {prompt}",
                 stop_sequences=[anthropic.HUMAN_PROMPT],
                 max_tokens_to_sample=max_tokens,
                 temperature=temperature,
             )
+            
             output = response.completion
+            # ---------------------------
             break
         except anthropic.APIError as e:
             print(type(e), e)
             time.sleep(API_RETRY_SLEEP)
+    return output.strip()
+
+def messages_api_anthropic(model, conv, temperature, max_tokens, api_dict=None):
+    if api_dict is not None and "api_key" in api_dict:
+        api_key = api_dict["api_key"]
+    else:
+        api_key = os.environ["ANTHROPIC_API_KEY"]
+
+    client = anthropic.Anthropic(api_key=api_key)
+    output = API_ERROR_OUTPUT
+
+    for _ in range(API_MAX_RETRY):
+        try:
+            #pdb.set_trace()
+            prompt = conv.get_prompt()
+            messages = [
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ]
+            response = client.messages.create(
+                model=model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+            output = response.content[0].text
+            print(output)
+            break
+        except anthropic.APIError as e:
+            print(type(e), e)
+            time.sleep(API_RETRY_SLEEP)
+    
     return output.strip()
 
 
